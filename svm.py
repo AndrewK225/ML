@@ -13,7 +13,7 @@ def main():
     #test = feats_all[7000:]
 
     
-    savetxt('svm_submission1.csv',OneVsRestClassifier(LinearSVC(random_state=0)).fit(feats_all,labels_all).predict(test),delimiter='\n')
+    savetxt('svm_submission1.csv',OneVsRestClassifier(LinearSVC(random_state=18)).fit(feats_all,labels_all).predict(test),delimiter='\n')
     
     
 
