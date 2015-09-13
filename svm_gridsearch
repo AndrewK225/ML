@@ -1,0 +1,32 @@
+#Support Vector Machines
+from sklearn import svm
+from sklearn.multiclass import OneVsRestClassifier
+import numpy as np
+from numpy import genfromtxt,savetxt
+from sklearn.grid_search import GridSearchCV
+from sklearn.cross_validation import StratifiedShuffleSplit
+
+def main():
+    feats_all = genfromtxt(open('X_train.txt','r'))
+    labels_all = genfromtxt(open('Y_train.txt','r'),dtype='int')
+    test = genfromtxt(open('X_test.txt','r'))
+
+    #train_feats = feats_all[:7000]
+    #train_labels = labels_all[:7000]
+    #test = feats_all[7000:]
+
+    print("bout to to some shit")
+    param_grid ={'C': [1, 10, 100, 1000], 'gamma': [0.001, 0.0001], 'kernel': ['rbf']}
+     
+    print("Everyday I'm shuffling")
+    cv = StratifiedShuffleSplit(labels_all, n_iter=5, test_size=0.2, random_state=0)
+    print("training")
+    mod = GridSearchCV(svm.SVC(),param_grid=param_grid,cv=cv,n_jobs=-1).fit(feats_all,labels_all)
+    print("predicting")
+    savetxt('svm_sub_kern.csv',mod.predict(test),delimiter='\n')
+    
+    
+
+
+if __name__=="__main__":
+    main()
