@@ -3,28 +3,28 @@ import xgboost as xgb
 import pandas as pd
 import numpy as np
 import math
-from tempfile import TemporaryFile
+import gc
+#from tempfile import TemporaryFile
 
 def main():
 	#38 trip types
-	
+	gc.enable()	
 	x_train,y_train,decoder = preprocess_training()
 	x_test = preprocess_testing()
 
-	y_test = [0]*x_test.size
+	#dval = xgb.DMatrix(val_feats,label=val_labels)
 	dtrain = xgb.DMatrix(x_train,label=y_train)
-	dtest = xgb.DMatrix(x_test,label=np.array(y_test))
-	
-	param = {'bst:max_depth':2, 'bst:eta':1, 'silent':1, 'objective':'multi:softprob' ,'num_class':7}
+	dtest = xgb.DMatrix(x_test)
+	param = {'bst:max_depth':5, 'bst:eta':0.1, 'silent':1, 'objective':'multi:softprob' ,'num_class':38}
 	param['eval_metric'] = 'mlogloss'
-	watchlist = [(dtest,'eval'),(dtrain,'train')]
-	num_round = 2
-	bst = xgb.train(param,dtrain,num_round,watchlist)
-	bst.save_model('1.model')
-	preds = bst.predict(dtest)
+	#watchlist = [(dval,'eval'),(dtrain,'train')]
+	num_round = 100
+	bst = xgb.train(param, dtrain, num_round)	
+	preds = bst.predict(dtest).reshape(x_test.shape[0],38)
+	print(preds)
 	
 def preprocess_testing():
-	test = pd.read_csv('test_debug.csv')
+	test = pd.read_csv('test.csv')
 	uniq_fline = [] # No guarantee flines would be present in training
 	features = {}
 	end_features = []
@@ -56,7 +56,8 @@ def preprocess_testing():
 	return feats
 
 def preprocess_training():
-	train = pd.read_csv('train_debug.csv')
+	train = pd.read_csv('train.csv')
+	
 	uniq_fline = []
 	features = {}
 	labels = {}
@@ -91,12 +92,11 @@ def preprocess_training():
 	for tt in train['TripType']:
 		if not math.isnan(tt) and tt not in uniq_types:
 			uniq_types.append(tt)
-	
-	
+		
 	cnt = 0
 	for tt in sorted(uniq_types):
 		encode[tt] = cnt #tt to number
-		decode[cnt] = tt #number to tt
+		 #number to tt
 		cnt += 1	
 	  	
 	for trip_type, visit in zip(train['TripType'],train['VisitNumber']):
@@ -106,6 +106,10 @@ def preprocess_training():
 		end_features.append(features[key])
 		end_labels.append(labels[visit])
 
+
+	#Validation set
+	#val_feats = np.array(end_features[-20:],dtype=np.int)
+	#val_labels = np.array(end_labels[-20:],dtype=np.int)
 	#create the arrays of training data and save to disk
 	feats = np.array(end_features,dtype=np.int)
 	label = np.array(end_labels,dtype=np.int)
@@ -113,6 +117,7 @@ def preprocess_training():
 	#train_labels_file = TemporaryFile()
 	#np.save(train_feats_file,feats)
 	#np.save(train_labels_file,label)
+	
 	return feats,label,decode
 if __name__ == "__main__":
 	main()
