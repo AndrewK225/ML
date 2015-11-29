@@ -11,7 +11,6 @@ def main():
 	gc.enable()	
 	x_train,y_train,decoder = preprocess_training()
 	x_test = preprocess_testing()
-
 	#dval = xgb.DMatrix(val_feats,label=val_labels)
 	dtrain = xgb.DMatrix(x_train,label=y_train)
 	dtest = xgb.DMatrix(x_test)
@@ -21,7 +20,12 @@ def main():
 	num_round = 100
 	bst = xgb.train(param, dtrain, num_round)	
 	preds = bst.predict(dtest).reshape(x_test.shape[0],38)
-	print(preds)
+	f = open('file4.csv','w')
+	for line in preds:
+		string = ",".join(str(s) for s in line.tolist())
+		f.write(string+"\n")
+
+	f.close()
 	
 def preprocess_testing():
 	test = pd.read_csv('test.csv')
@@ -45,7 +49,7 @@ def preprocess_testing():
 	#binary vector for features
         for visit,fin in zip(test['VisitNumber'],test['FinelineNumber']):
                 if not math.isnan(fin):
-                        features[visit][tmp[fline]] += 1
+                        features[visit][tmp[fin]] += 1
 
 	for key in sorted(features):
                 end_features.append(features[key])
@@ -80,11 +84,12 @@ def preprocess_training():
 	#map each fline to a smaller number so it doesn't crash	
 	for fline in sorted_fline:
 		tmp[fline] = sorted_fline.index(fline)
+
 		
 	#binary vector for features
 	for visit,fin in zip(train['VisitNumber'],train['FinelineNumber']):
 		if not math.isnan(fin):
-			features[visit][tmp[fline]] += 1 	
+			features[visit][tmp[fin]] += 1 	
 
 	
 	#labels
@@ -98,15 +103,16 @@ def preprocess_training():
 		encode[tt] = cnt #tt to number
 		 #number to tt
 		cnt += 1	
-	  	
+	 
+
 	for trip_type, visit in zip(train['TripType'],train['VisitNumber']):
 		labels[visit] = encode[trip_type]
 	
 	for key in sorted(features):
 		end_features.append(features[key])
-		end_labels.append(labels[visit])
+		end_labels.append(labels[key])
 
-
+	
 	#Validation set
 	#val_feats = np.array(end_features[-20:],dtype=np.int)
 	#val_labels = np.array(end_labels[-20:],dtype=np.int)
